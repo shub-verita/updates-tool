@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String
+  createdAt DateTime @default(now())
+  updates   Update[]
+  tasks     Task[]
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  tasks     Task[]
+}
+
+model Update {
+  id        String     @id @default(cuid())
+  userId    String
+  user      TeamMember @relation(fields: [userId], references: [id])
+  rawText   String
+  date      DateTime   @default(now())
+  createdAt DateTime   @default(now())
+  tasks     Task[]
+}
+
+model Task {
+  id             String     @id @default(cuid())
+  updateId       String
+  update         Update     @relation(fields: [updateId], references: [id], onDelete: Cascade)
+  userId         String
+  user           TeamMember @relation(fields: [userId], references: [id])
+  projectId      String
+  project        Project    @relation(fields: [projectId], references: [id])
+  description    String
+  status         String
+  mentionedUsers String     @default("[]")
+  dueDate        DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
