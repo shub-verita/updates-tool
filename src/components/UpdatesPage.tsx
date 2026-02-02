@@ -188,7 +188,7 @@ function TaskRow({
 
 // Person/Project Card
 function GroupCard({
-  id, name, color, tasks, projects, onUpdate, onDelete, onAddTask, showUser,
+  id, name, color, tasks, projects, onUpdate, onDelete, onAddTask, showUser, onTitleClick,
 }: {
   id: string;
   name: string;
@@ -199,6 +199,7 @@ function GroupCard({
   onDelete: (id: string) => void;
   onAddTask: (userId: string, projectId: string, description: string) => Promise<void>;
   showUser: boolean;
+  onTitleClick?: () => void;
 }) {
   const [newTask, setNewTask] = useState("");
   const [selectedProject, setSelectedProject] = useState(projects[0]?.id || "");
@@ -244,7 +245,16 @@ function GroupCard({
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
         <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: color }} />
-        <h3 className="flex-1 font-medium text-slate-900 text-[13px] truncate">{name}</h3>
+        {onTitleClick ? (
+          <button
+            onClick={onTitleClick}
+            className="flex-1 font-medium text-slate-900 text-[13px] truncate text-left hover:text-slate-600 transition-colors cursor-pointer"
+          >
+            {name}
+          </button>
+        ) : (
+          <h3 className="flex-1 font-medium text-slate-900 text-[13px] truncate">{name}</h3>
+        )}
         <div className="flex items-center gap-1.5">
           <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
             <div className="h-full bg-emerald-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
@@ -326,6 +336,9 @@ export function UpdatesPage() {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(COLORS[0]);
+
+  // Project detail modal
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   // Chat bot
   const [showChat, setShowChat] = useState(false);
@@ -544,8 +557,22 @@ export function UpdatesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(grouped).map(([k, { name, color, tasks }]) => (
-              <GroupCard key={k} id={k} name={name} color={color} tasks={tasks} projects={projects} onUpdate={updateTask} onDelete={deleteTask} onAddTask={addTask} showUser={view === "projects"} />
+            {Object.entries(grouped)
+              .filter(([_, { name }]) => view !== "projects" || name !== "Internal/Individual")
+              .map(([k, { name, color, tasks }]) => (
+              <GroupCard
+                key={k}
+                id={k}
+                name={name}
+                color={color}
+                tasks={tasks}
+                projects={projects}
+                onUpdate={updateTask}
+                onDelete={deleteTask}
+                onAddTask={addTask}
+                showUser={view === "projects"}
+                onTitleClick={view === "projects" ? () => setSelectedProjectId(k) : undefined}
+              />
             ))}
           </div>
         )}
@@ -781,6 +808,41 @@ export function UpdatesPage() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Project Detail Modal */}
+      {selectedProjectId && grouped[selectedProjectId] && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-150" onClick={() => setSelectedProjectId(null)}>
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl animate-in zoom-in-95 duration-150" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-5 rounded-full" style={{ backgroundColor: grouped[selectedProjectId].color }} />
+                <h2 className="font-semibold text-slate-900">{grouped[selectedProjectId].name}</h2>
+                <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                  {grouped[selectedProjectId].tasks.filter((t) => t.status === "done").length}/{grouped[selectedProjectId].tasks.length} done
+                </span>
+              </div>
+              <button onClick={() => setSelectedProjectId(null)} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-md transition-all duration-150 active:scale-95">
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+
+            {/* Tasks */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
+              {grouped[selectedProjectId].tasks.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  projects={projects}
+                  onUpdate={updateTask}
+                  onDelete={deleteTask}
+                  showUser={true}
+                />
+              ))}
             </div>
           </div>
         </div>
