@@ -23,6 +23,7 @@ interface Task {
   dueDate: string | null;
   user: TeamMember;
   project: Project;
+  isCarriedOver?: boolean;
 }
 
 interface ParsedTask {
@@ -172,6 +173,11 @@ function TaskRow({
 
       {/* Meta + Actions */}
       <div className="flex items-center gap-1 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
+        {task.isCarriedOver && (
+          <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+            ↩ Yesterday
+          </span>
+        )}
         {showUser && <span className="text-[10px] text-slate-500 bg-slate-100 px-1 py-0.5 rounded">{task.user.name}</span>}
         <span className="text-[10px] text-slate-400">{task.project.name}</span>
         {due && <span className="text-[10px] text-orange-500">{due}</span>}
@@ -316,6 +322,7 @@ export function UpdatesPage() {
   const [view, setView] = useState<"people" | "projects">("people");
   const [date, setDate] = useState(new Date());
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [carriedTasks, setCarriedTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -352,26 +359,93 @@ export function UpdatesPage() {
     fetch("/api/projects").then((r) => r.json()).then(setProjects);
   }, []);
 
+  // Helper to check if selected date is tomorrow
+  const isViewingTomorrow = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+    return selectedDate.getTime() === tomorrow.getTime();
+  };
+
+  // Fetch carried tasks (yesterday's incomplete tasks when viewing tomorrow)
+  const fetchCarriedTasks = async () => {
+    if (!isViewingTomorrow()) {
+      setCarriedTasks([]);
+      return;
+    }
+    const today = new Date();
+    const todayStr = formatDateForAPI(today);
+    try {
+      const res = await fetch(`/api/tasks?date=${todayStr}`);
+      const data = await res.json();
+      const incomplete = (Array.isArray(data) ? data : []).filter(
+        (t: Task) => t.status !== "done"
+      );
+      setCarriedTasks(incomplete);
+    } catch {
+      setCarriedTasks([]);
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/tasks?date=${formatDateForAPI(date)}`)
-      .then((r) => r.json())
-      .then((d) => setTasks(Array.isArray(d) ? d : []))
+    Promise.all([
+      fetch(`/api/tasks?date=${formatDateForAPI(date)}`).then((r) => r.json()),
+      isViewingTomorrow()
+        ? fetch(`/api/tasks?date=${formatDateForAPI(new Date())}`).then((r) => r.json())
+        : Promise.resolve([]),
+    ])
+      .then(([tasksData, carriedData]) => {
+        setTasks(Array.isArray(tasksData) ? tasksData : []);
+        if (isViewingTomorrow()) {
+          const incomplete = (Array.isArray(carriedData) ? carriedData : []).filter(
+            (t: Task) => t.status !== "done"
+          );
+          setCarriedTasks(incomplete);
+        } else {
+          setCarriedTasks([]);
+        }
+      })
       .finally(() => setLoading(false));
   }, [date]);
 
   const fetchMembers = () => fetch("/api/team-members").then((r) => r.json()).then(setMembers);
+
   const refreshTasks = () => fetch(`/api/tasks?date=${formatDateForAPI(date)}`).then((r) => r.json()).then((d) => setTasks(Array.isArray(d) ? d : []));
+
+  const refreshCarriedTasks = async () => {
+    if (!isViewingTomorrow()) {
+      setCarriedTasks([]);
+      return;
+    }
+    const today = new Date();
+    const todayStr = formatDateForAPI(today);
+    try {
+      const res = await fetch(`/api/tasks?date=${todayStr}`);
+      const data = await res.json();
+      const incomplete = (Array.isArray(data) ? data : []).filter(
+        (t: Task) => t.status !== "done"
+      );
+      setCarriedTasks(incomplete);
+    } catch {
+      setCarriedTasks([]);
+    }
+  };
 
   const updateTask = async (id: string, data: Partial<Task> & { dueDate?: string | null }) => {
     await fetch(`/api/tasks/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-    refreshTasks();
+    // Refresh both current tasks and carried tasks for real-time sync
+    await Promise.all([refreshTasks(), refreshCarriedTasks()]);
   };
 
   const deleteTask = async (id: string) => {
     if (!window.confirm("Delete this task?")) return;
     await fetch(`/api/tasks/${id}`, { method: "DELETE" });
     setTasks((t) => t.filter((x) => x.id !== id));
+    setCarriedTasks((t) => t.filter((x) => x.id !== id));
   };
 
   const addTask = async (userId: string, projectId: string, description: string) => {
@@ -380,7 +454,7 @@ export function UpdatesPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, projectId, description, date: formatDateForAPI(date) }),
     });
-    refreshTasks();
+    await Promise.all([refreshTasks(), refreshCarriedTasks()]);
   };
 
   const parse = async () => {
@@ -467,7 +541,16 @@ export function UpdatesPage() {
     setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
-  const grouped = tasks.reduce((acc, t) => {
+  // Merge current tasks with carried tasks (marking carried ones)
+  const allTasks: Task[] = [
+    ...tasks.map((t) => ({ ...t, isCarriedOver: false })),
+    // Only add carried tasks that don't already exist on the current day (by id)
+    ...carriedTasks
+      .filter((ct) => !tasks.some((t) => t.id === ct.id))
+      .map((t) => ({ ...t, isCarriedOver: true })),
+  ];
+
+  const grouped = allTasks.reduce((acc, t) => {
     const key = view === "people" ? t.user.id : t.project.id;
     const name = view === "people" ? t.user.name : t.project.name;
     const color = view === "people" ? t.user.color : t.project.color;
