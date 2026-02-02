@@ -79,8 +79,8 @@ export async function POST(request: NextRequest) {
       uniqueTasks.map(async (task) => {
         const projectId = projectMap.get(task.project.toLowerCase());
         if (!projectId) {
-          // Default to Ops if project not found
-          const opsProject = projects.find((p) => p.name === "Ops");
+          // Default to Internal/Individual if project not found
+          const opsProject = projects.find((p) => p.name === "Internal/Individual");
           if (!opsProject) throw new Error("Ops project not found");
           return prisma.task.create({
             data: {

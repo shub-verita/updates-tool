@@ -32,7 +32,7 @@ async function main() {
     { name: "Figma", color: "#EAB308" },
     { name: "Conde Nast", color: "#A855F7" },
     { name: "Causal Labs", color: "#14B8A6" },
-    { name: "Ops", color: "#6B7280" },
+    { name: "Internal/Individual", color: "#6B7280" },
   ];
 
   for (const project of projects) {
