@@ -816,7 +816,7 @@ export function UpdatesPage() {
       {/* Project Detail Modal */}
       {selectedProjectId && grouped[selectedProjectId] && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-150" onClick={() => setSelectedProjectId(null)}>
-          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-xl animate-in zoom-in-95 duration-150" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-xl w-[calc(100%-2rem)] h-[calc(100vh-4rem)] flex flex-col shadow-xl animate-in zoom-in-95 duration-150" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2">
