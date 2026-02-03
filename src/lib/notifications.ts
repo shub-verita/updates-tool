@@ -18,7 +18,16 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export async function notifyTaskChange(params: NotifyParams) {
-  if (!params.slackUserId) return;
+  console.log("[Slack Notification] Attempting to send notification:", {
+    action: params.action,
+    slackUserId: params.slackUserId,
+    taskDescription: params.taskDescription,
+  });
+
+  if (!params.slackUserId) {
+    console.log("[Slack Notification] No slackUserId, skipping notification");
+    return;
+  }
 
   let message = "";
 
