@@ -359,16 +359,19 @@ export function UpdatesPage() {
     fetch("/api/projects").then((r) => r.json()).then(setProjects);
   }, []);
 
-  // Helper to check if selected date is tomorrow
-  const isViewingTomorrow = () => {
+  // Helper to check if a given date is tomorrow
+  const checkIfTomorrow = (checkDate: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const selectedDate = new Date(date);
+    const selectedDate = new Date(checkDate);
     selectedDate.setHours(0, 0, 0, 0);
     return selectedDate.getTime() === tomorrow.getTime();
   };
+
+  // For use outside useEffect (uses current date state)
+  const isViewingTomorrow = () => checkIfTomorrow(date);
 
   // Fetch carried tasks (yesterday's incomplete tasks when viewing tomorrow)
   const fetchCarriedTasks = async () => {
@@ -391,16 +394,17 @@ export function UpdatesPage() {
   };
 
   useEffect(() => {
+    const isTomorrow = checkIfTomorrow(date);
     setLoading(true);
     Promise.all([
       fetch(`/api/tasks?date=${formatDateForAPI(date)}`).then((r) => r.json()),
-      isViewingTomorrow()
+      isTomorrow
         ? fetch(`/api/tasks?date=${formatDateForAPI(new Date())}`).then((r) => r.json())
         : Promise.resolve([]),
     ])
       .then(([tasksData, carriedData]) => {
         setTasks(Array.isArray(tasksData) ? tasksData : []);
-        if (isViewingTomorrow()) {
+        if (isTomorrow) {
           const incomplete = (Array.isArray(carriedData) ? carriedData : []).filter(
             (t: Task) => t.status !== "done"
           );
