@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
               status: task.status,
               mentionedUsers: JSON.stringify(task.mentioned_people || []),
               dueDate: task.due_date ? new Date(task.due_date) : null,
+              createdAt: startOfDay,
             },
           });
         }
@@ -103,6 +104,7 @@ export async function POST(request: NextRequest) {
             status: task.status,
             mentionedUsers: JSON.stringify(task.mentioned_people || []),
             dueDate: task.due_date ? new Date(task.due_date) : null,
+            createdAt: startOfDay,
           },
         });
       })
