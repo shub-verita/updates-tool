@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notifyTaskChange } from "@/lib/notifications";
 
 interface TaskInput {
   description: string;
@@ -109,6 +110,23 @@ export async function POST(request: NextRequest) {
         });
       })
     );
+
+    // Get user info for notifications
+    const user = await prisma.teamMember.findUnique({
+      where: { id: userId },
+    });
+
+    // Send Slack notifications for each created task
+    for (const task of createdTasks) {
+      const project = projects.find((p) => p.id === task.projectId);
+      notifyTaskChange({
+        userName: user?.name || "Unknown",
+        slackUserId: user?.slackUserId || null,
+        taskDescription: task.description,
+        projectName: project?.name || "Unknown",
+        action: "created",
+      });
+    }
 
     const skippedCount = tasks.length - uniqueTasks.length;
     return NextResponse.json({

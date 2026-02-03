@@ -19,7 +19,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, color } = body;
+    const { name, color, slackUserId } = body;
 
     if (!name || !color) {
       return NextResponse.json(
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const teamMember = await prisma.teamMember.create({
-      data: { name, color },
+      data: { name, color, slackUserId: slackUserId || null },
     });
 
     return NextResponse.json(teamMember);

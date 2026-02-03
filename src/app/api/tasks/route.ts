@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notifyTaskChange } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,6 +39,15 @@ export async function POST(request: NextRequest) {
         user: true,
         project: true,
       },
+    });
+
+    // Send Slack notification
+    notifyTaskChange({
+      userName: task.user.name,
+      slackUserId: task.user.slackUserId,
+      taskDescription: task.description,
+      projectName: task.project.name,
+      action: "created",
     });
 
     return NextResponse.json(task);

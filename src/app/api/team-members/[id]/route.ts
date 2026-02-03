@@ -8,11 +8,12 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, color } = body;
+    const { name, color, slackUserId } = body;
 
-    const updateData: Record<string, string> = {};
+    const updateData: Record<string, string | null> = {};
     if (name !== undefined) updateData.name = name;
     if (color !== undefined) updateData.color = color;
+    if (slackUserId !== undefined) updateData.slackUserId = slackUserId || null;
 
     const member = await prisma.teamMember.update({
       where: { id },

@@ -7,6 +7,7 @@ interface TeamMember {
   id: string;
   name: string;
   color: string;
+  slackUserId?: string | null;
 }
 
 interface Project {
@@ -343,6 +344,7 @@ export function UpdatesPage() {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(COLORS[0]);
+  const [newSlackId, setNewSlackId] = useState("");
 
   // Project detail modal
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -504,17 +506,19 @@ export function UpdatesPage() {
 
   const addMember = async () => {
     if (!newName.trim()) return;
-    await fetch("/api/team-members", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newName.trim(), color: newColor }) });
+    await fetch("/api/team-members", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newName.trim(), color: newColor, slackUserId: newSlackId.trim() || null }) });
     setNewName("");
     setNewColor(COLORS[Math.floor(Math.random() * COLORS.length)]);
+    setNewSlackId("");
     fetchMembers();
   };
 
   const updateMember = async () => {
     if (!editingMember || !newName.trim()) return;
-    await fetch(`/api/team-members/${editingMember.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newName.trim(), color: newColor }) });
+    await fetch(`/api/team-members/${editingMember.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newName.trim(), color: newColor, slackUserId: newSlackId.trim() || null }) });
     setEditingMember(null);
     setNewName("");
+    setNewSlackId("");
     fetchMembers();
   };
 
@@ -687,6 +691,17 @@ export function UpdatesPage() {
                   onKeyDown={(e) => e.key === "Enter" && (editingMember ? updateMember() : addMember())}
                 />
 
+                {/* Slack User ID */}
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Slack User ID (optional)</p>
+                  <input
+                    value={newSlackId}
+                    onChange={(e) => setNewSlackId(e.target.value)}
+                    placeholder="U01ABC123DE"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all duration-150"
+                  />
+                </div>
+
                 {/* Color Grid */}
                 <div>
                   <p className="text-xs text-slate-500 mb-2">Select color</p>
@@ -714,7 +729,7 @@ export function UpdatesPage() {
                         Save Changes
                       </button>
                       <button
-                        onClick={() => { setEditingMember(null); setNewName(""); }}
+                        onClick={() => { setEditingMember(null); setNewName(""); setNewSlackId(""); }}
                         className="px-3 py-2 text-slate-600 text-sm hover:bg-slate-200 active:bg-slate-300 rounded-lg transition-all duration-150"
                       >
                         Cancel
@@ -744,7 +759,7 @@ export function UpdatesPage() {
                         </div>
                         <span className="flex-1 text-sm text-slate-700">{m.name}</span>
                         <button
-                          onClick={() => { setEditingMember(m); setNewName(m.name); setNewColor(m.color); }}
+                          onClick={() => { setEditingMember(m); setNewName(m.name); setNewColor(m.color); setNewSlackId(m.slackUserId || ""); }}
                           className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 active:bg-slate-200 rounded-md transition-all duration-150 active:scale-95"
                         >
                           <Pencil className="w-3.5 h-3.5" />

@@ -11,12 +11,13 @@ datasource db {
 }
 
 model TeamMember {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  color     String
-  createdAt DateTime @default(now())
-  updates   Update[]
-  tasks     Task[]
+  id          String   @id @default(cuid())
+  name        String   @unique
+  color       String
+  slackUserId String?
+  createdAt   DateTime @default(now())
+  updates     Update[]
+  tasks       Task[]
 }
 
 model Project {
