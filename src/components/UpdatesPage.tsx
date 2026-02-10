@@ -1013,9 +1013,9 @@ export function UpdatesPage() {
         {/* Chat Toggle Button */}
         <button
           onClick={() => setShowChat(!showChat)}
-          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${showChat ? "bg-slate-200 text-slate-600" : "bg-slate-900 text-white hover:bg-slate-800"}`}
+          className={`shadow-lg flex items-center justify-center transition-all duration-200 ${showChat ? "w-12 h-12 rounded-full bg-slate-200 text-slate-600" : "h-12 px-5 gap-2 rounded-full bg-slate-900 text-white hover:bg-slate-800"}`}
         >
-          {showChat ? <X className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
+          {showChat ? <X className="w-5 h-5" /> : <><MessageCircle className="w-5 h-5" /><span className="text-sm font-medium">Ask AI</span></>}
         </button>
       </div>
     </div>

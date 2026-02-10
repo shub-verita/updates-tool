@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { groq } from "@/lib/groq";
+import { getAnthropicClient } from "@/lib/anthropic";
 
 const SYSTEM_PROMPT = `You are helping parse a daily work update for the Verita team.
 
@@ -57,17 +57,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+    const client = getAnthropicClient();
+    const response = await client.messages.create({
+      model: "claude-3-5-haiku-20241022",
+      system: SYSTEM_PROMPT,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: rawText },
       ],
       temperature: 0.1,
       max_tokens: 2048,
     });
 
-    const content = completion.choices[0]?.message?.content;
+    const content = response.content[0]?.type === "text" ? response.content[0].text : null;
 
     if (!content) {
       return NextResponse.json(

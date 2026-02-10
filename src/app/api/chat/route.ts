@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import Groq from "groq-sdk";
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+import { getAnthropicClient } from "@/lib/anthropic";
 
 export async function POST(request: NextRequest) {
   try {
@@ -86,12 +82,10 @@ ${Object.entries(byUser)
   .join("\n")}
 `.trim();
 
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        {
-          role: "system",
-          content: `You are a helpful assistant for a team task management app called "Verita Updates".
+    const client = getAnthropicClient();
+    const response = await client.messages.create({
+      model: "claude-3-5-haiku-20241022",
+      system: `You are a helpful assistant for a team task management app called "Verita Updates".
 You have access to task data and can answer questions about team members, their tasks, progress, and projects.
 Be concise and friendly. Use bullet points for lists. If asked about specific people or dates, provide accurate counts.
 If you don't have enough data to answer, say so politely.
@@ -99,7 +93,7 @@ If you don't have enough data to answer, say so politely.
 Here is the current data:
 
 ${dataSummary}`,
-        },
+      messages: [
         {
           role: "user",
           content: question,
@@ -109,7 +103,7 @@ ${dataSummary}`,
       max_tokens: 500,
     });
 
-    const answer = completion.choices[0]?.message?.content || "Sorry, I couldn't process that question.";
+    const answer = response.content[0]?.type === "text" ? response.content[0].text : "Sorry, I couldn't process that question.";
 
     return NextResponse.json({ answer });
   } catch (error) {
